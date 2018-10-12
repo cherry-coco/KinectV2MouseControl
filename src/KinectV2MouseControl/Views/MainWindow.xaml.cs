@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 
 namespace KinectV2MouseControl
 {
@@ -24,6 +25,12 @@ namespace KinectV2MouseControl
             CursorViewModel.Quit();
         }
 
-
+        private void window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.D && ((Keyboard.Modifiers & ModifierKeys.Control) > 0))
+            {
+                DisableRadio.IsChecked = true;
+            }
+        }
     }
 }
