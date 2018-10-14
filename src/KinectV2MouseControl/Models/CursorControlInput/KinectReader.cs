@@ -14,6 +14,7 @@ namespace KinectV2MouseControl
 
         const int NO_LOST_FRAME_TRACK = -1;
         const int MAX_LOST_TRACKING_FRAME_ALLOWED = 5;
+        const int MAX_HAND_DOWN_FRAME_ALLOWED = 300;
 
         /// <summary>
         /// Allowing some tracking lost frames before raising OnLostTracking events.
@@ -21,6 +22,8 @@ namespace KinectV2MouseControl
         /// (Especially when there're more changes happen between tracking and losing tracking.)
         /// </summary>
         int lostTrackingFrames = NO_LOST_FRAME_TRACK;
+
+        int handDownFrames = 0;
 
         KinectSensor sensor;
 
@@ -81,22 +84,42 @@ namespace KinectV2MouseControl
 
             bool hasTrackedBody = false;
 
-            if (usedTrackingId != 0)
+            Body trackedBody = null;
+
+            if (usedTrackingId != 0 && handDownFrames < MAX_HAND_DOWN_FRAME_ALLOWED)
             {
-                Body trackedBody = bodies.FirstOrDefault<Body>(body => body.TrackingId == usedTrackingId);
+                trackedBody = bodies.FirstOrDefault<Body>(body => body.TrackingId == usedTrackingId);
                 if (trackedBody != null)
                 {
-                    GetTrackedBody(trackedBody);
                     hasTrackedBody = true;
+                    if (!((trackedBody.IsHandLiftUpward(true) || trackedBody.IsHandLiftUpward(false))))
+                    {
+                        handDownFrames++;
+                    }else
+                    {
+                        handDownFrames = 0;
+                    }
                 }
             }
             else
             {
-                Body newBody = bodies.FirstOrDefault<Body>(body => body.IsTracked);
-                if (newBody != null)
+                float minz = 99999999.0f;
+                foreach (Body body in bodies)
                 {
-                    GetTrackedBody(newBody);
-                    usedTrackingId = newBody.TrackingId;
+                    if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)))
+                    {
+                        float z = body.Joints[JointType.Head].Position.Z;
+                        if (z < minz)
+                        {
+                            minz = z;
+                            trackedBody = body;
+                            handDownFrames = 0;
+                        }
+                    }
+                }
+                if (trackedBody != null)
+                {
+                    usedTrackingId = trackedBody.TrackingId;
                     hasTrackedBody = true;
                 }
             }
@@ -110,6 +133,11 @@ namespace KinectV2MouseControl
                 {
                     OnLostTracking.Invoke(this, EventArgs.Empty);
                 }
+            }
+
+            if (hasTrackedBody)
+            {
+                GetTrackedBody(trackedBody);
             }
         }
 

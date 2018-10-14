@@ -5,6 +5,7 @@ namespace KinectV2MouseControl
     public static class KinectBodyHelper
     {
         const double HAND_LIFT_Z_DISTANCE = 0.15f;
+        const double HAND_UP_Y_DISTANCE = 0.15f;
         const double GESTURE_Y_OFFSET = -0.65f;
         const double GESTURE_X_OFFSET = 0.185f;
         
@@ -21,6 +22,11 @@ namespace KinectV2MouseControl
         public static HandState GetHandState(this Body body, bool isLeft)
         {
             return isLeft ? body.HandLeftState : body.HandRightState;
+        }
+
+        public static bool IsHandLiftUpward(this Body body, bool isLeft)
+        {
+            return body.Joints[isLeft ? JointType.HandLeft : JointType.HandRight].Position.Y - body.Joints[JointType.SpineBase].Position.Y > HAND_UP_Y_DISTANCE;
         }
 
         public static MVector2 GetHandRelativePosition(this Body body, bool isLeft)
