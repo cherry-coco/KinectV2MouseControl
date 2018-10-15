@@ -5,7 +5,7 @@ namespace KinectV2MouseControl
     public static class KinectBodyHelper
     {
         const double HAND_LIFT_Z_DISTANCE = 0.15f;
-        const double HAND_UP_Y_DISTANCE = 0.15f;
+        const double HAND_UP_Y_DISTANCE = 0.2f;
         const double GESTURE_Y_OFFSET = -0.65f;
         const double GESTURE_X_OFFSET = 0.185f;
         

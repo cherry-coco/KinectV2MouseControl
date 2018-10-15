@@ -1,6 +1,9 @@
 ﻿using Microsoft.Kinect;
 using System;
 using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace KinectV2MouseControl
 {
@@ -9,12 +12,16 @@ namespace KinectV2MouseControl
     /// </summary>
     public class KinectReader
     {
+        // temp fix to display debug information
+        public static MainWindow window;
+
+
         public EventHandler<BodyEventArgs> OnTrackedBody;
         public EventHandler OnLostTracking;
 
         const int NO_LOST_FRAME_TRACK = -1;
         const int MAX_LOST_TRACKING_FRAME_ALLOWED = 5;
-        const int MAX_HAND_DOWN_FRAME_ALLOWED = 300;
+        const int MAX_HAND_DOWN_FRAME_ALLOWED = 200;
 
         /// <summary>
         /// Allowing some tracking lost frames before raising OnLostTracking events.
@@ -38,6 +45,9 @@ namespace KinectV2MouseControl
         Body[] bodies = null;
 
         ulong usedTrackingId = 0;
+
+        BodiesManager bodiesManager;
+        
 
         public KinectReader(bool openSensor = false)
         {
@@ -63,15 +73,47 @@ namespace KinectV2MouseControl
                     {
                         bodies = new Body[bodyFrame.BodyCount];
                     }
-
+                    
                     bodyFrame.GetAndRefreshBodyData(bodies);
                     refreshedBodyData = true;
+                    ShowBodyJoints();
+                    ShowDebugText();
                 }
             }
 
             if (refreshedBodyData)
             {
                 HandleBodyData();
+            }
+        }
+
+        private void ShowBodyJoints()
+        {
+            Canvas drawingCanvas = new Canvas();
+            // set the clip rectangle to prevent 
+            // rendering outside the canvas
+            RectangleGeometry r = new RectangleGeometry();
+            r.Rect = new Rect(0.0, 0.0,
+                 window.BodyJointsGrid.Width,
+                 window.BodyJointsGrid.Height);
+            drawingCanvas.Clip = r;
+            drawingCanvas.Width = window.BodyJointsGrid.Width;
+            drawingCanvas.Height = window.BodyJointsGrid.Height;
+            // reset the body joints grid
+            window.BodyJointsGrid.Visibility = Visibility.Visible;
+            window.BodyJointsGrid.Children.Clear();
+            // add canvas to DisplayGrid
+            window.BodyJointsGrid.Children.Add(drawingCanvas);
+            bodiesManager = new BodiesManager(this.sensor.CoordinateMapper,
+                  drawingCanvas,
+                 bodies.Length);
+            int trackedColorIndex = bodiesManager.UpdateBodiesAndEdges(bodies,usedTrackingId);
+            if (trackedColorIndex!=-1)
+            {
+                window.TrackedBodyColor.Background = new SolidColorBrush(bodiesManager.bodyColors[trackedColorIndex]);
+            } else
+            {
+                window.TrackedBodyColor.Background = new SolidColorBrush();
             }
         }
 
@@ -148,6 +190,16 @@ namespace KinectV2MouseControl
             {
                 OnTrackedBody.Invoke(this, new BodyEventArgs(body));
             }
+        }
+
+        private void ShowDebugText()
+        {
+            window.DebugText.Text = String.Format("body count={0}, trackid={1}, handdownframes={2,3}",bodies.Length,usedTrackingId,handDownFrames);
+        }
+
+        private void WriteDebugImage()
+        {
+
         }
 
         /// <summary>

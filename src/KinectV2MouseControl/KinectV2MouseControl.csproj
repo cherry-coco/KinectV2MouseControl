@@ -57,6 +57,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Models\CursorControlInput\BodiesManager.cs" />
+    <Compile Include="Models\CursorControlInput\BodyInfo.cs" />
     <Compile Include="ViewModels\KinectCursorViewModel.cs" />
     <Compile Include="Views\RadioCheckedToBoolConverter.cs" />
     <Page Include="Views\MainWindow.xaml">
