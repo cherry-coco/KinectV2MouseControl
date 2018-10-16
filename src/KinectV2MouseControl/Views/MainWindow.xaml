@@ -50,6 +50,7 @@
                 </Viewbox>
                 <TextBlock x:Name="DebugText" Text="DEBUG DEBUG DEBUG"></TextBlock>
                 <TextBlock x:Name="TrackedBodyColor" Text="Tracked Body Color"></TextBlock>
+                <TextBlock x:Name="Errortext" Text="error"></TextBlock>
             </StackPanel>
         </StackPanel>
     </Grid>

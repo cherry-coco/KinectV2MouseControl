@@ -21,7 +21,8 @@ namespace KinectV2MouseControl
 
         const int NO_LOST_FRAME_TRACK = -1;
         const int MAX_LOST_TRACKING_FRAME_ALLOWED = 5;
-        const int MAX_HAND_DOWN_FRAME_ALLOWED = 200;
+        const int MAX_HAND_DOWN_FRAME_ALLOWED = 70;
+        const int NEAREST_PERSON_SWITCH_FRAME = 50;
 
         /// <summary>
         /// Allowing some tracking lost frames before raising OnLostTracking events.
@@ -31,6 +32,7 @@ namespace KinectV2MouseControl
         int lostTrackingFrames = NO_LOST_FRAME_TRACK;
 
         int handDownFrames = 0;
+        int nearestPersonHandUpFrames = 0;
 
         KinectSensor sensor;
 
@@ -47,7 +49,7 @@ namespace KinectV2MouseControl
         ulong usedTrackingId = 0;
 
         BodiesManager bodiesManager;
-        
+
 
         public KinectReader(bool openSensor = false)
         {
@@ -63,27 +65,37 @@ namespace KinectV2MouseControl
 
         private void BodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
-            bool refreshedBodyData = false;
 
-            using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
+            try
             {
-                if (bodyFrame != null)
+
+                bool refreshedBodyData = false;
+
+                using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
                 {
-                    if (bodies == null)
+                    if (bodyFrame != null)
                     {
-                        bodies = new Body[bodyFrame.BodyCount];
-                    }
-                    
-                    bodyFrame.GetAndRefreshBodyData(bodies);
-                    refreshedBodyData = true;
-                    ShowBodyJoints();
-                    ShowDebugText();
-                }
-            }
+                        if (bodies == null)
+                        {
+                            bodies = new Body[bodyFrame.BodyCount];
+                        }
 
-            if (refreshedBodyData)
+                        bodyFrame.GetAndRefreshBodyData(bodies);
+                        refreshedBodyData = true;
+                        ShowBodyJoints();
+                        ShowDebugText();
+                    }
+                }
+
+                if (refreshedBodyData)
+                {
+                    HandleBodyData();
+                }
+
+            }
+            catch (Exception ex)
             {
-                HandleBodyData();
+                window.Errortext.Text = ex.ToString();
             }
         }
 
@@ -107,11 +119,12 @@ namespace KinectV2MouseControl
             bodiesManager = new BodiesManager(this.sensor.CoordinateMapper,
                   drawingCanvas,
                  bodies.Length);
-            int trackedColorIndex = bodiesManager.UpdateBodiesAndEdges(bodies,usedTrackingId);
-            if (trackedColorIndex!=-1)
+            int trackedColorIndex = bodiesManager.UpdateBodiesAndEdges(bodies, usedTrackingId);
+            if (trackedColorIndex != -1)
             {
                 window.TrackedBodyColor.Background = new SolidColorBrush(bodiesManager.bodyColors[trackedColorIndex]);
-            } else
+            }
+            else
             {
                 window.TrackedBodyColor.Background = new SolidColorBrush();
             }
@@ -128,16 +141,43 @@ namespace KinectV2MouseControl
 
             Body trackedBody = null;
 
-            if (usedTrackingId != 0 && handDownFrames < MAX_HAND_DOWN_FRAME_ALLOWED)
+            Body nearestBody = null;
+            float minz = 99999999.0f;
+            foreach (Body body in bodies)
             {
-                trackedBody = bodies.FirstOrDefault<Body>(body => body.TrackingId == usedTrackingId);
+                if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)))
+                {
+                    float z = body.Joints[JointType.Head].Position.Z;
+                    if (z < minz)
+                    {
+                        minz = z;
+                        nearestBody = body;
+                    }
+                }
+            }
+            if (nearestBody != null)
+            {
+                if (nearestBody.TrackingId == usedTrackingId)
+                {
+                    nearestPersonHandUpFrames = 0;
+                }
+                else
+                {
+                    nearestPersonHandUpFrames++;
+                }
+            }
+
+            if (usedTrackingId != 0 && handDownFrames < MAX_HAND_DOWN_FRAME_ALLOWED && nearestPersonHandUpFrames < NEAREST_PERSON_SWITCH_FRAME)
+            {
+                trackedBody = bodies.FirstOrDefault<Body>(body => (body != null && body.TrackingId == usedTrackingId));
                 if (trackedBody != null)
                 {
                     hasTrackedBody = true;
                     if (!((trackedBody.IsHandLiftUpward(true) || trackedBody.IsHandLiftUpward(false))))
                     {
                         handDownFrames++;
-                    }else
+                    }
+                    else
                     {
                         handDownFrames = 0;
                     }
@@ -145,20 +185,9 @@ namespace KinectV2MouseControl
             }
             else
             {
-                float minz = 99999999.0f;
-                foreach (Body body in bodies)
-                {
-                    if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)))
-                    {
-                        float z = body.Joints[JointType.Head].Position.Z;
-                        if (z < minz)
-                        {
-                            minz = z;
-                            trackedBody = body;
-                            handDownFrames = 0;
-                        }
-                    }
-                }
+                trackedBody = nearestBody;
+                handDownFrames = 0;
+                nearestPersonHandUpFrames = 0;
                 if (trackedBody != null)
                 {
                     usedTrackingId = trackedBody.TrackingId;
@@ -194,7 +223,10 @@ namespace KinectV2MouseControl
 
         private void ShowDebugText()
         {
-            window.DebugText.Text = String.Format("body count={0}, trackid={1}, handdownframes={2,3}",bodies.Length,usedTrackingId,handDownFrames);
+            if (bodies != null)
+            {
+                window.DebugText.Text = String.Format("hdf={0}, trackid={1}, handdownframes={2,3}", nearestPersonHandUpFrames, usedTrackingId, handDownFrames);
+            }
         }
 
         private void WriteDebugImage()
