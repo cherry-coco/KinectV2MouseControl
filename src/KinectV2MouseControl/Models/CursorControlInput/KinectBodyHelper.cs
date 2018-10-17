@@ -16,7 +16,8 @@ namespace KinectV2MouseControl
 
         public static bool IsHandLiftForward(this Body body, bool isLeft)
         {
-            return body.Joints[isLeft ? JointType.HandLeft : JointType.HandRight].Position.Z - body.Joints[JointType.SpineBase].Position.Z < -HAND_LIFT_Z_DISTANCE;
+            JointType hand = isLeft ? JointType.HandLeft : JointType.HandRight;
+            return body.Joints[hand].Position.Z - body.Joints[JointType.SpineBase].Position.Z < -HAND_LIFT_Z_DISTANCE;
         }
 
         public static HandState GetHandState(this Body body, bool isLeft)
@@ -26,7 +27,12 @@ namespace KinectV2MouseControl
 
         public static bool IsHandLiftUpward(this Body body, bool isLeft)
         {
-            return body.Joints[isLeft ? JointType.HandLeft : JointType.HandRight].Position.Y - body.Joints[JointType.SpineBase].Position.Y > HAND_UP_Y_DISTANCE;
+            JointType hand = isLeft ? JointType.HandLeft : JointType.HandRight;
+            if (body.Joints[hand].TrackingState != TrackingState.Tracked)
+            {
+                return false;
+            }
+            return body.Joints[hand].Position.Y - body.Joints[JointType.SpineBase].Position.Y > HAND_UP_Y_DISTANCE;
         }
 
         public static MVector2 GetHandRelativePosition(this Body body, bool isLeft)

@@ -145,7 +145,7 @@ namespace KinectV2MouseControl
             float minz = 99999999.0f;
             foreach (Body body in bodies)
             {
-                if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)))
+                if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)) && body.Joints[JointType.Head].TrackingState == TrackingState.Tracked)
                 {
                     float z = body.Joints[JointType.Head].Position.Z;
                     if (z < minz)
