@@ -43,6 +43,14 @@ namespace KinectV2MouseControl
             return handPos.ToMVector2() - spineBase.ToMVector2() + gestureOffsets[isLeft ? 0 : 1];
         }
 
+        public static MVector2 GetHandSmoothedRelativePosition(this CameraSpacePoint[] joints, bool isLeft)
+        {
+            CameraSpacePoint handPos = joints[(int)(isLeft ? JointType.HandLeft : JointType.HandRight)];
+            CameraSpacePoint spineBase = joints[(int)(JointType.SpineBase)];
+
+            return handPos.ToMVector2() - spineBase.ToMVector2() + gestureOffsets[isLeft ? 0 : 1];
+        }
+
         public static MVector2 ToMVector2(this CameraSpacePoint jointPoint)
         {
             return new MVector2(jointPoint.X, jointPoint.Y);

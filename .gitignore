@@ -41,3 +41,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+src/KinectV2MouseControl/bin
+src/KinectV2MouseControl/obj
+src/.vs

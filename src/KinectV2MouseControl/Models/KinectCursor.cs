@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Kinect;
+using KinectV2MouseControl.Models.CursorMapper;
 
 namespace KinectV2MouseControl
 {
@@ -9,6 +10,7 @@ namespace KinectV2MouseControl
     {
         private KinectReader sensorReader;
         private CursorMapper cursorMapper;
+        private KinectJointFilter kinectJointFilter;
 
         public enum ControlMode
         {
@@ -119,11 +121,14 @@ namespace KinectV2MouseControl
             MRect screenRect = new MRect(0, 0, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight);
             cursorMapper = new CursorMapper(gestureRect, screenRect, CursorMapper.ScaleAlignment.LongerRange);
 
+
             sensorReader = new KinectReader(false);
             sensorReader.OnTrackedBody += Kinect_OnTrackedBody;
             sensorReader.OnLostTracking += Kinect_OnLostTracking;
             hoverTimer.Interval = TimeSpan.FromSeconds(HoverDuration);
             hoverTimer.Tick += new EventHandler(HoverTimer_Tick);
+            kinectJointFilter = new KinectJointFilter();
+            kinectJointFilter.Reset(fJitterRadius: 0.03f, fMaxDeviationRadius: 0.05f);
         }
 
         private void Kinect_OnLostTracking(object sender, EventArgs e)
@@ -132,6 +137,7 @@ namespace KinectV2MouseControl
             ReleaseGrip(0);
             ReleaseGrip(1);
             usedHandIndex = NONE_USED;
+            kinectJointFilter.Reset(fJitterRadius: 0.03f,fMaxDeviationRadius:0.05f);
         }
 
         private void Kinect_OnTrackedBody(object sender, BodyEventArgs e)
@@ -162,7 +168,9 @@ namespace KinectV2MouseControl
                         continue;
                     }
 
-                    MVector2 handPos = body.GetHandRelativePosition(isLeft);
+                    kinectJointFilter.UpdateFilter(body);
+                    //MVector2 handPos = body.GetHandRelativePosition(isLeft);
+                    MVector2 handPos = KinectBodyHelper.GetHandSmoothedRelativePosition(kinectJointFilter.GetFilteredJoints(), isLeft);
                     MVector2 targetPos = cursorMapper.GetSmoothedOutputPosition(handPos);
                     //System.Diagnostics.Trace.WriteLine(handPos.ToString());
 

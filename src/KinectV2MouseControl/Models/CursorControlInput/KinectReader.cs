@@ -143,6 +143,8 @@ namespace KinectV2MouseControl
 
             Body nearestBody = null;
             float minz = 99999999.0f;
+
+            // find nearest body
             foreach (Body body in bodies)
             {
                 if (body != null && body.IsTracked && (body.IsHandLiftUpward(true) || body.IsHandLiftUpward(false)) && body.Joints[JointType.Head].TrackingState == TrackingState.Tracked)
@@ -155,6 +157,8 @@ namespace KinectV2MouseControl
                     }
                 }
             }
+
+            // count nearest body hand up frames if not in control
             if (nearestBody != null)
             {
                 if (nearestBody.TrackingId == usedTrackingId)
@@ -167,7 +171,8 @@ namespace KinectV2MouseControl
                 }
             }
 
-            if (usedTrackingId != 0 && handDownFrames < MAX_HAND_DOWN_FRAME_ALLOWED && nearestPersonHandUpFrames < NEAREST_PERSON_SWITCH_FRAME)
+
+            if (usedTrackingId != 0 && handDownFrames < MAX_HAND_DOWN_FRAME_ALLOWED && nearestPersonHandUpFrames < NEAREST_PERSON_SWITCH_FRAME) // use tracked body
             {
                 trackedBody = bodies.FirstOrDefault<Body>(body => (body != null && body.TrackingId == usedTrackingId));
                 if (trackedBody != null)
@@ -183,11 +188,15 @@ namespace KinectV2MouseControl
                     }
                 }
             }
-            else
+            else // switch to nearest body
             {
                 trackedBody = nearestBody;
                 handDownFrames = 0;
                 nearestPersonHandUpFrames = 0;
+                if (OnLostTracking != null)
+                {
+                    OnLostTracking.Invoke(this, EventArgs.Empty);
+                }
                 if (trackedBody != null)
                 {
                     usedTrackingId = trackedBody.TrackingId;
