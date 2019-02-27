@@ -1,14 +1,17 @@
 ﻿using Microsoft.Kinect;
+using System.Collections.Generic;
+using System;
+
 
 namespace KinectV2MouseControl
 {
     public static class KinectBodyHelper
     {
-        const double HAND_LIFT_Z_DISTANCE = 0.3f;
+        const double HAND_LIFT_Z_DISTANCE = 0.0f;
         const double HAND_UP_Y_DISTANCE = 0.2f;
         const double GESTURE_Y_OFFSET = -0.65f;
         const double GESTURE_X_OFFSET = 0.185f;
-        
+
         static MVector2[] gestureOffsets = new MVector2[] {
            new MVector2(GESTURE_X_OFFSET, GESTURE_Y_OFFSET),
            new MVector2(-GESTURE_X_OFFSET, GESTURE_Y_OFFSET)
@@ -23,6 +26,17 @@ namespace KinectV2MouseControl
         public static HandState GetHandState(this Body body, bool isLeft)
         {
             return isLeft ? body.HandLeftState : body.HandRightState;
+        }
+        
+        public static double TwoHandsDistance(this Body body)
+        {
+            double delta_X = body.Joints[JointType.HandLeft].Position.X - body.Joints[JointType.HandRight].Position.X;
+            double delta_Y = body.Joints[JointType.HandLeft].Position.Y - body.Joints[JointType.HandRight].Position.Y;
+            if (delta_X > 0)
+            {
+                return -Math.Sqrt(delta_X * delta_X + delta_Y * delta_Y);
+            }
+            return Math.Sqrt(delta_X * delta_X + delta_Y * delta_Y);
         }
 
         public static bool IsHandLiftUpward(this Body body, bool isLeft)

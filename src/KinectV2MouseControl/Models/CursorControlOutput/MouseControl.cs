@@ -18,6 +18,11 @@ namespace KinectV2MouseControl
     /// </summary>
     public static class MouseControl
     {
+        public static void Wheel(int num)
+        {
+            mouse_event(MouseEventFlag.Wheel, 0, 0, num, UIntPtr.Zero);
+        }
+
         public static void PressDown()
         {
             mouse_event(MouseEventFlag.LeftDown, 0, 0, 0, UIntPtr.Zero);
@@ -41,9 +46,9 @@ namespace KinectV2MouseControl
         [DllImport("user32.dll")]
         private static extern bool SetCursorPos(int X, int Y);
         [DllImport("user32.dll")]
-        private static extern void mouse_event(MouseEventFlag flags, int dx, int dy, uint data, UIntPtr extraInfo);
+        private static extern void mouse_event(MouseEventFlag flags, int dx, int dy, int data, UIntPtr extraInfo);
         [Flags]
-        enum MouseEventFlag : uint
+        enum MouseEventFlag : int
         {
             Move = 0x0001,
             LeftDown = 0x0002,

@@ -123,6 +123,11 @@ namespace KinectV2MouseControl
 
         public MVector2 GetOutputPosition(MVector2 inputPosition)
         {
+            //double dist = Math.Sqrt(Math.Pow(inputPosition.X - _inputRect.Center.X, 2) + Math.Pow(inputPosition.Y - _inputRect.Center.Y, 2));
+            //if(dist > 0.3)
+            //    return _inputRect.Center;
+            //else
+            //    return _outputRect.Center + (inputPosition - _inputRect.Center) * totalScale + moveOffset;
             return _outputRect.Center + (inputPosition - _inputRect.Center) * totalScale + moveOffset;
         }
 

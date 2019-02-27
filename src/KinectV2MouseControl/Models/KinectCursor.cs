@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Threading;
+using System.Collections.Generic;
 using Microsoft.Kinect;
 using KinectV2MouseControl.Models.CursorMapper;
 
@@ -60,7 +61,8 @@ namespace KinectV2MouseControl
         /// Rect value worked out by pointing to left, top, right, bottom spot with my hand as the ideal edges, and noting down the x, y values got from GetHandRelativePosition.
         /// This may only fit more for me, and you can test out your rect value. Approximately it works fine for most people.
         /// </summary>
-        private MRect gestureRect = new MRect(-0.18, 1.65, 0.18, -1.65);
+        ///private MRect gestureRect = new MRect(-0.18, 1.65, 0.18, -1.65);
+        private MRect gestureRect = new MRect(-0.27, 2.475, 0.27, -2.475);
 
         private bool[] handGrips = new bool[2] { false, false };
 
@@ -140,6 +142,9 @@ namespace KinectV2MouseControl
             kinectJointFilter.Reset(fJitterRadius: 0.03f,fMaxDeviationRadius:0.05f);
         }
 
+        //private List<MVector2> posList = new List<MVector2>();
+        private List<double> HandDist = new List<double>();
+
         private void Kinect_OnTrackedBody(object sender, BodyEventArgs e)
         {
             Body body = e.BodyData;
@@ -168,28 +173,59 @@ namespace KinectV2MouseControl
                         continue;
                     }
 
-                    kinectJointFilter.UpdateFilter(body);
-                    //MVector2 handPos = body.GetHandRelativePosition(isLeft);
-                    MVector2 handPos = KinectBodyHelper.GetHandSmoothedRelativePosition(kinectJointFilter.GetFilteredJoints(), isLeft);
-                    MVector2 targetPos = cursorMapper.GetSmoothedOutputPosition(handPos);
-                    //System.Diagnostics.Trace.WriteLine(handPos.ToString());
-
-                    MouseControl.MoveTo(targetPos.X, targetPos.Y);
-
-                    if (Mode == ControlMode.GripToPress)
+                    if (body.IsHandLiftUpward(isLeft) && body.IsHandLiftUpward(!isLeft))
                     {
-                        DoMouseControlByHandState(i, body.GetHandState(isLeft));
-                    }
-                    else if (Mode == ControlMode.HoverToClick)
-                    {
-                        if ((targetPos - lastCursorPos).Length() > HoverRange)
+                        HandDist.Add(body.TwoHandsDistance());
+                        //System.Diagnostics.Trace.WriteLine(HandDist.Count);
+                        if (HandDist.Count == 2)
                         {
-                            ToggleHoverTimer(false);
-                            hoverClicked = false;
+                            if (HandDist[1] - HandDist[0] >= 0.25)
+                            {
+                                MouseControl.Wheel(120);
+                                //System.Diagnostics.Trace.WriteLine(1);
+                                HandDist[0] = HandDist[1];
+                                HandDist.RemoveAt(1);
+                            }
+                            else if (HandDist[0] - HandDist[1] >= 0.25)
+                            {
+                                MouseControl.Wheel(-120);
+                                //System.Diagnostics.Trace.WriteLine(-1);
+                                HandDist[0] = HandDist[1];
+                                HandDist.RemoveAt(1);
+                            }
+                            else
+                            {
+                                HandDist.RemoveAt(1);
+                            }
                         }
-
-                        lastCursorPos = targetPos;
+                        //System.Diagnostics.Trace.WriteLine(body.TwoHandsDistance());
                     }
+                    else
+                    {
+                        HandDist.Clear();
+                        kinectJointFilter.UpdateFilter(body);
+                        //MVector2 handPos = body.GetHandRelativePosition(isLeft);
+                        MVector2 handPos = KinectBodyHelper.GetHandSmoothedRelativePosition(kinectJointFilter.GetFilteredJoints(), isLeft);
+                        MVector2 targetPos = cursorMapper.GetSmoothedOutputPosition(handPos);
+                        //System.Diagnostics.Trace.WriteLine(handPos.ToString());
+
+                        MouseControl.MoveTo(targetPos.X, targetPos.Y);
+
+                        if (Mode == ControlMode.GripToPress)
+                        {
+                            DoMouseControlByHandState(i, body.GetHandState(isLeft));
+                        }
+                        else if (Mode == ControlMode.HoverToClick)
+                        {
+                            if ((targetPos - lastCursorPos).Length() > HoverRange)
+                            {
+                                ToggleHoverTimer(false);
+                                hoverClicked = false;
+                            }
+
+                            lastCursorPos = targetPos;
+                        }
+                    }                    
                 }
                 else
                 {
